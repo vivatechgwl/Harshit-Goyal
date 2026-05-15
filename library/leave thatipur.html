@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard | Library Leave</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --primary:#0284c7; }
+        .bg-primary { background-color: var(--primary); }
+        .text{ color:green}
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-64 bg-primary text-white p-6 hidden md:block">
+            <h1 class="text-2xl font-bold mb-10"><i class="fas fa-book-reader mr-2"></i> LibLeaveThatipur</h1>
+          <img src="library2.png"style="max-width:100%; height:auto;" alt="Description of image" width="600" height="100000">
+
+            <nav class="space-y-4">
+                
+               
+            </nav>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto p-4 md:p-10">
+            <header class="flex justify-between items-center mb-10">
+                <h2 class="text-3xl font-bold text-gray-800">Welcome, Student!</h2>
+                <div id="notification-area"></div>
+            </header>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-semibold mb-6 border-b pb-2">Apply for Leave</h3>
+                    <form id="leaveForm" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+        <label class="text-sm font-bold">Full Name</label>                    
+<input 
+type="text"
+id="studentName"
+placeholder="Enter Full Name"
+required
+maxlength="30"
+pattern="[A-Za-z\s]+"
+oninput="this.value=this.value.replace(/[^A-Za-z\s]/g,'')"
+class="w-full p-2 border rounded-md">
+
+                            </div>
+                            <div>
+                            
+                                <label class="text-sm font-bold">Mobile No.</label>
+                                
+<input
+type="tel"
+id="mobile"
+required
+maxlength="10"
+placeholder="Enter Mobile No."
+pattern="[0-9]{10}"
+oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+class="w-full p-2 border rounded-md">
+
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-bold">Start Date</label>
+                                <input type="date" id="startDate" required class="w-full p-2 border rounded-md" onchange="calcDuration()">
+                            </div>
+                            <div>
+                                <label class="text-sm font-bold">End Date</label>
+                                <input type="date" id="endDate" required class="w-full p-2 border rounded-md" onchange="calcDuration()">
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded">
+                            <span class="font-bold">Duration: </span><span id="durationTxt">0</span> days
+                        </div>
+                        <div>
+                            <label class="text-sm font-bold">Reason</label>
+                            <textarea id="reason" required class="w-full p-2 border rounded-md" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-green-700 transition">Submit Request</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-8 rounded-xl shadow-lg overflow-x-auto">
+                    <h3 class="text-xl font-semibold mb-6 border-b pb-2">Leave History</h3>
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-gray-400 text-sm">
+                                <th class="pb-4">Name</th> <th class="pb-4">Dates</th>
+                                <th class="pb-4">Days</th>
+                                <th class="pb-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function calcDuration() {
+            const startStr = document.getElementById('startDate').value;
+            const endStr = document.getElementById('endDate').value;
+            
+            if(startStr && endStr) {
+                const start = new Date(startStr);
+                const end = new Date(endStr);
+                
+                if(end >= start) {
+                    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                    document.getElementById('durationTxt').innerText = diff;
+                    return diff;
+                }
+            }
+            document.getElementById('durationTxt').innerText = 0;
+            return 0;
+        }
+
+        document.getElementById('leaveForm').onsubmit = function(e) {
+            e.preventDefault();
+            const days = calcDuration();
+
+            if(days <= 0) {
+                alert("Error: End date cannot be before start date!");
+                return;
+            }
+
+            if(days > 10) {
+                alert("Error: Leave cannot exceed 10 days!");
+                return;
+            }
+
+            const request = {
+                id: Date.now(),
+                studentName: document.getElementById('studentName').value, // Student Name save ho raha hai
+                mobile: document.getElementById('mobile').value,
+                start: document.getElementById('startDate').value,
+                end: document.getElementById('endDate').value,
+                days: days,
+                reason: document.getElementById('reason').value,
+                status: 'Pending',
+                comment: '',
+                timestamp: new Date().toLocaleDateString()
+            };
+
+            let leaves = JSON.parse(localStorage.getItem('leaves_thatipur')) || [];
+            leaves.push(request);
+            localStorage.setItem('leaves_thatipur', JSON.stringify(leaves));
+            
+            alert("Leave submitted successfully!");
+            location.reload();
+        };
+
+        function loadHistory() {
+            const leaves = JSON.parse(localStorage.getItem('leaves_thatipur')) || [];
+            const tbody = document.getElementById('historyTable');
+            
+            tbody.innerHTML = leaves.map(l => `
+                <tr class="border-b">
+                    <td class="py-4 font-semibold text-gray-800">${l.studentName}</td> <td class="py-4 text-sm text-gray-600">${l.start} to ${l.end}</td>
+                    <td class="py-4">${l.days}</td>
+                    <td class="py-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold ${
+                            l.status === 'Approved' ? 'bg-green-100 text-green-700' : 
+                            l.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                        }">${l.status}</span>
+                    </td>
+                </tr>
+            `).reverse().join(''); // Latest request sabse upar dikhane ke liye reverse kiya hai
+        }
+        
+        loadHistory();
+
+
+        document.getElementById('leaveForm').onsubmit = function(e) {
+    e.preventDefault();
+    const days = calcDuration();
+
+    // Check: Sirf ye check karega ki dates sahi chuni hain ya nahi
+    if(days <= 10) {
+        alert("minimum 10 din ki chutti leni hogi ");
+        return;
+    }
+
+    // Ab yahan koi bhi minimum (10 din) ki limit nahi hai.
+    // Student 1 din ki chutti bhi le sakta hai.
+
+    const request = {
+        id: Date.now(),
+        studentName: document.getElementById('studentName').value,
+        mobile: document.getElementById('mobile').value,
+        start: document.getElementById('startDate').value,
+        end: document.getElementById('endDate').value,
+        days: days,
+        reason: document.getElementById('reason').value,
+        status: 'Pending',
+        comment: '',
+        timestamp: new Date().toLocaleDateString()
+    };
+
+    // LocalStorage mein save karna
+    let leaves = JSON.parse(localStorage.getItem('leaves_thatipur')) || [];
+    leaves.push(request);
+    localStorage.setItem('leaves_thatipur', JSON.stringify(leaves));
+    
+    alert("Leave submitted successfully for " + days + " day(s)!");
+    location.reload(); // Page refresh karke history update karne ke liye
+};
+    </script>
+</body>
+</html>

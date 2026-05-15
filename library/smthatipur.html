@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Owner - Seat Management | The Prefect Study</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f4f4f4; padding-bottom: 50px; }
+        .row { display: flex; justify-content: center; margin: 5px; }
+        .seat { width: 35px; height: 35px; border: 2px solid green; margin: 3px; line-height: 35px; border-radius: 5px; cursor: pointer; background: white; font-size: 11px; transition: 0.3s; }
+        .seat.booked { background-color: rgb(61, 17, 52) !important; color: white; border: none; }
+        .gap { width: 40px; }
+        
+        .main-layout { display: flex; justify-content: center; gap: 30px; align-items: flex-start; flex-wrap: wrap; margin-top: 20px; }
+        .hall-box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-top: 4px solid rgb(61, 17, 52); }
+        
+        /* Modal Styling */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; }
+        .modal-content { background: white; margin: 5% auto; padding: 25px; width: 320px; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); border-top: 5px solid rgb(61, 17, 52); }
+        
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .price-display { background: #fff8f0; padding: 10px; border-radius: 8px; font-weight: bold; color: #e67e22; margin: 10px 0; border: 1px dashed #e67e22; }
+        
+        button { padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-save { background: rgb(61, 17, 52); color: white; width: 100%; font-size: 16px; }
+        .btn-reset { background: #e74c3c; color: white; margin-top: 15px; width: 100%; }
+        .btn-close { margin-top: 10px; background: #ddd; width: 100%; color: #333; }
+        
+        h2, h3 { color: rgb(61, 17, 52); margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h2 style="margin-top:20px;">OWNER DASHBOARD (THATIPUR)</h2>
+
+    <div class="main-layout">
+        <div class="hall-box">
+            <h3>HALL-01</h3>
+            <div id="grid-h1"></div>
+            <h4 style="margin:10px 0 5px 0;">CABIN</h4>
+            <div id="cabin-h1"></div>
+        </div>
+
+        <div class="hall-box">
+            <h3>HALL-02</h3>
+            <div id="grid-h2"></div>
+            <h4 style="margin:10px 0 5px 0;">CABIN</h4>
+            <div id="cabin-h2"></div>
+        </div>
+    </div>
+
+    <div id="modal">
+        <div class="modal-content">
+            <h3 id="mTitle" style="margin-top:0;"></h3>
+            
+            <div id="formSection">
+                <input type="text" id="sName" placeholder="Student Name">
+                <input type="text" id="sContact" placeholder="Contact No" maxlength="10">
+                
+                <select id="sPlan" onchange="updatePriceDisplay()">
+                    <option value="unreserved">Unreserved Plan (₹600)</option>
+                    <option value="reserved">Reserved Plan (₹850)</option>
+                    <option value="premium" id="opt-premium" style="display:none;">Premium Cabin (₹1150)</option>
+                </select>
+
+                <div class="price-display">Final Amount: ₹<span id="display-amt">600</span></div>
+                <button class="btn-save" onclick="save()">Confirm Booking</button>
+            </div>
+
+            <div id="infoSection" style="display:none">
+                <div style="text-align: left; background: #f9f9f9; padding: 15px; border-radius: 8px; font-size: 14px;">
+                    <p id="details" style="margin:0; line-height:1.6;"></p>
+                </div>
+                <button class="btn-reset" onclick="remove()">Vacate Seat</button>
+            </div>
+            
+            <button class="btn-close" onclick="closeM()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSeatId = null;
+        let libData = JSON.parse(localStorage.getItem('libData_thatipur')) || {};
+
+        function init() {
+            renderHall01();
+            renderHall02();
+        }
+
+        function renderHall01() {
+            const grid = document.getElementById('grid-h1');
+            let seatNum = 1;
+            for (let r = 1; r <= 14; r++) {
+                let row = document.createElement('div');
+                row.className = 'row';
+                for (let s = 1; s <= 10; s++) {
+                    if (seatNum > 141) break;
+                    if(seatNum === 125) seatNum = 134; 
+                    let id = seatNum.toString().padStart(2, '0');
+                    renderSeat(row, id);
+                    if (s === 5 && seatNum <= 130) row.appendChild(Object.assign(document.createElement('div'), {className: 'gap'}));
+                    seatNum++;
+                }
+                grid.appendChild(row);
+            }
+            
+            const cabinIds = ['C-125', 'C-126', 'C-127', 'C-128', 'C-129', 'C-130', 'C-131', 'C-132', 'C-133'];
+            const cabinGrid = document.getElementById('cabin-h1');
+            let crow = document.createElement('div'); crow.className = 'row';
+            cabinIds.forEach(id => renderSeat(crow, id));
+            cabinGrid.appendChild(crow);
+        }
+
+        function renderHall02() {
+            const grid = document.getElementById('grid-h2');
+            let seatNum = 201;
+            for (let r = 1; r <= 14; r++) {
+                let row = document.createElement('div');
+                row.className = 'row';
+                for (let s = 1; s <= 10; s++) {
+                    if (seatNum > 314) break;
+                    if (seatNum === 290) seatNum = 306;
+                    renderSeat(row, seatNum.toString());
+                    if (s === 5 && seatNum <= 306) row.appendChild(Object.assign(document.createElement('div'), {className: 'gap'}));
+                    seatNum++;
+                }
+                grid.appendChild(row);
+            }
+
+            const cabinIds = ['C-290', 'C-291', 'C-292', 'C-293', 'C-294', 'C-295', 'C-296', 'C-297', 'C-298', 'C-299', 'C-300', 'C-301', 'C-302', 'C-303', 'C-304', 'C-305', 'C-315'];
+            const cabinGrid = document.getElementById('cabin-h2');
+            let crow = document.createElement('div'); crow.className = 'row';
+            cabinIds.forEach(id => {
+                renderSeat(crow, id);
+                if(id === 'C-293' || id === 'C-297' || id === 'C-301' || id === 'C-305') {
+                    cabinGrid.appendChild(crow);
+                    crow = document.createElement('div'); crow.className = 'row';
+                }
+            });
+            cabinGrid.appendChild(crow);
+        }
+
+        function renderSeat(parent, id) {
+    let seat = document.createElement('div');
+    let confirmed = JSON.parse(localStorage.getItem('libData_thatipur')) || {};
+
+    seat.className = 'seat';
+    seat.innerText = id;
+
+    if (confirmed[id]) {
+        seat.classList.add('booked');
+    }
+
+    seat.onclick = () => openM(id);
+    parent.appendChild(seat);
+}
+        
+        function openM(id) {
+            libData = JSON.parse(localStorage.getItem('libData_thatipur')) || {};
+            currentSeatId = id;
+            document.getElementById('mTitle').innerText = "Seat: " + id;
+            document.getElementById('modal').style.display = 'block';
+            
+            const planSelect = document.getElementById('sPlan');
+            const premOpt = document.getElementById('opt-premium');
+
+            if (id.startsWith('C')) {
+                premOpt.style.display = "block";
+                planSelect.value = "premium";
+                planSelect.disabled = true;
+            } else {
+                premOpt.style.display = "none";
+                planSelect.value = "unreserved";
+                planSelect.disabled = false;
+            }
+            updatePriceDisplay();
+
+            if (libData[id]) {
+                document.getElementById('formSection').style.display = 'none';
+                document.getElementById('infoSection').style.display = 'block';
+                const d = libData[id];
+                document.getElementById('details').innerHTML = `
+                    <b>Name:</b> ${d.name}<br>
+                    <b>Contact:</b> ${d.contact}<br>
+                    <b>Type:</b> ${d.type}<br>
+                    <b>Paid:</b> ₹${d.amount}<br>
+                    <b>Date:</b> ${d.time}
+                `;
+            } else {
+                document.getElementById('formSection').style.display = 'block';
+                document.getElementById('infoSection').style.display = 'none';
+                document.getElementById('sName').value = "";
+                document.getElementById('sContact').value = "";
+            }
+        }
+
+        function updatePriceDisplay() {
+    const plan = document.getElementById('sPlan').value;
+
+    let isHall02 = Number(currentSeatId) >= 201 || currentSeatId === "C-290" || currentSeatId === "C-291" || currentSeatId === "C-292" || currentSeatId === "C-293" || currentSeatId === "C-294" || currentSeatId === "C-295" || currentSeatId === "C-296" || currentSeatId === "C-297" || currentSeatId === "C-298" || currentSeatId === "C-299" || currentSeatId === "C-300" || currentSeatId === "C-301" || currentSeatId === "C-302" || currentSeatId === "C-303" || currentSeatId === "C-304" || currentSeatId === "C-305" || currentSeatId === "C-315";
+
+    let price = 1150;
+
+    if (isHall02) {
+        if (plan === "unreserved") price = 700;
+        if (plan === "reserved") price = 1050;
+        if (plan === "premium") price = 1100;
+    } else {
+        if (plan === "unreserved") price = 650;
+        if (plan === "reserved") price = 850;
+        if (plan === "premium") price = 1100;
+    }
+
+   const amount = document.getElementById('display-amt').innerText; 
+}
+        
+
+        function save() {
+    const name = document.getElementById('sName').value;
+    const contact = document.getElementById('sContact').value;
+    const plan = document.getElementById('sPlan').value;
+    const amount = document.getElementById('display-amt').innerText;
+    
+    if (name && contact) {
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbziCDMw_yVDWop4dJxcNL9o5oZsVuJL3znBClId9Z2hQ-Wed8k518IrHkXBHndbwZA/exec';
+        
+        const data = { 
+            seatId: currentSeatId, 
+            name: name, 
+            contact: contact, 
+            amount: amount, 
+            type: plan + " (Admin Allot)",
+            time: new Date().toISOString().split('T')[0] 
+        };
+
+        // Google Sheets update
+        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
+
+        // Local data update (Hall-02 synchronization ke liye zaroori)
+        libData[currentSeatId] = data; 
+        localStorage.setItem('libData_thatipur', JSON.stringify(libData));
+
+        alert("Seat " + currentSeatId + " Allotted Successfully!");
+        location.reload(); 
+    } else { 
+        alert("Fill all details!"); 
+    }
+}
+
+        function remove() {
+            if(confirm("Vacate this seat?")) {
+                delete libData[currentSeatId];
+                localStorage.setItem('libData_thatipur', JSON.stringify(libData));
+                location.reload();
+            }
+        }
+
+        window.onload = () => {
+    const pin = prompt("Thatipur Admin PIN");
+
+    if(pin === "1234") {
+        init();
+    } else {
+        document.body.innerHTML = "<h1>Unauthorized!</h1>";
+    }
+};
+function closeM() {
+
+    document.getElementById('modal').style.display = 'none';
+
+    currentSeatId = null;
+
+}
+    
+    </script>
+</body>
+</html>

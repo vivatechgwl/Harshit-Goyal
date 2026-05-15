@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Library Seat Layout</title>
+
+    <style>
+        body{
+            font-family: Arial, sans-serif;
+            text-align:center;
+            background:#f4f4f4;
+            padding-bottom:50px;
+            scroll-behavior:smooth;
+        }
+
+        .hall-title{
+            font-weight:bold;
+            font-size:24px;
+            margin:20px 0;
+            color:rgb(61,17,52);
+        }
+
+        .stat-box{
+            background:white;
+            padding:15px;
+            border-radius:10px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.1);
+            display:inline-block;
+            margin-bottom:20px;
+            border-top:4px solid rgb(61,17,52);
+        }
+
+        .highlight{
+            color:rgb(61,17,52);
+            font-weight:bold;
+        }
+
+        .row{
+            display:flex;
+            justify-content:center;
+            margin:5px 0;
+            flex-wrap:wrap;
+        }
+
+        .seat{
+            width:35px;
+            height:35px;
+            border:2px solid green;
+            margin:3px;
+            line-height:35px;
+            border-radius:5px;
+            cursor:pointer;
+            background:white;
+            font-size:12px;
+            transition:0.3s;
+        }
+
+        .seat:not(.booked):hover{
+            background:rgb(61,17,52);
+            color:white;
+        }
+
+        .seat.booked{
+            background:orange !important;
+            color:white;
+            border:none;
+            cursor:not-allowed;
+        }
+
+        .cabin-container{
+            margin-top:20px;
+            display:inline-block;
+            padding:10px;
+        }
+
+        .booking-panel{
+            background:white;
+            max-width:420px;
+            margin:30px auto;
+            padding:25px;
+            border-radius:10px;
+            box-shadow:0 4px 15px rgba(0,0,0,0.1);
+            border-top:4px solid orange;
+        }
+
+        input{
+            width:92%;
+            padding:10px;
+            margin:8px 0;
+            border:1px solid #ccc;
+            border-radius:5px;
+            font-size:14px;
+        }
+
+        .radio-group{
+            margin:15px 0;
+            text-align:left;
+            padding:10px;
+            background:#fafafa;
+            border-radius:5px;
+        }
+
+        .payment-section{
+            background:#fff8f0;
+            padding:15px;
+            border-radius:8px;
+            border:1px dashed orange;
+            margin-top:15px;
+        }
+
+        .btn-pay{
+            background:#27ae60;
+            color:white;
+            border:none;
+            padding:15px;
+            border-radius:5px;
+            font-size:16px;
+            font-weight:bold;
+            cursor:pointer;
+            width:100%;
+            margin-top:20px;
+        }
+        @media (max-width:768px){
+
+    .main-layout{
+        flex-direction: column;
+        align-items:center;
+    }
+
+    .seat{
+        width:28px;
+        height:28px;
+        line-height:28px;
+        font-size:10px;
+        margin:2px;
+    }
+
+    .booking-panel{
+        width:95%;
+        padding:15px;
+    }
+
+    input{
+        width:100%;
+    }
+
+    .hall-box{
+        width:100%;
+        overflow-x:auto;
+    }
+
+    .row{
+        flex-wrap:nowrap;
+    }
+}
+@media (min-width:769px) and (max-width:1024px){
+
+    .main-layout{
+        flex-direction:column;
+        align-items:center;
+    }
+
+    .hall-box{
+        width:95%;
+        overflow-x:auto;
+    }
+
+    .seat{
+        width:32px;
+        height:32px;
+        line-height:32px;
+        font-size:11px;
+    }
+
+    .booking-panel{
+        width:90%;
+    }
+}
+    </style>
+</head>
+
+<body>
+
+<div class="hall-title">
+    THE PERFECT STUDY LIBRARY (Phoolbhagh Branch - 1st Floor)
+</div>
+
+<div class="stat-box">
+    Available:
+    <span id="available-count" class="highlight" style="color:green;">126</span>
+
+    Booked:
+    <span id="booked-count" class="highlight" style="color:red;">0</span>
+</div>
+
+<div id="layout-container"></div>
+
+<!-- <h3>CABIN AREA</h3> 
+
+<div class="cabin-container" id="cabin-layout"></div>-->
+
+<div class="booking-panel" id="booking-section">
+
+    <h3 style="margin-top:0;">Booking Details</h3>
+    <input type="text"
+           id="seat-id-input"
+           placeholder="Select a seat from layout"
+           readonly
+           style="background:#f0f0f0;font-weight:bold;color:rgb(61,17,52);">
+
+    <input type="text"
+           id="student-name"
+           placeholder="Enter Your Name"
+           maxlength="20"
+           oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'');">
+
+    <input type="text"
+           id="student-contact"
+           placeholder="Enter Contact Number"
+           maxlength="10"
+           oninput="this.value=this.value.replace(/[^0-9]/g,'');">
+
+    <div class="radio-group" id="reservation-options">
+
+        <p style="margin:0 0 10px 0;font-weight:bold;">
+            Fees Structure:
+        </p>
+
+        <label>
+            <input type="radio"
+                   name="res-type"
+                   value="unreserved"
+                   checked
+                   onclick="calculateFinalPrice()">
+
+            Unreserved Plan (₹700)
+        </label>
+
+        <br>
+
+        <label>
+            <input type="radio"
+                   name="res-type"
+                   value="reserved"
+                   onclick="calculateFinalPrice()">
+
+            Reserved Plan (₹1000 + ₹50 Security)
+        </label>
+
+    </div>
+
+    <div class="payment-section">
+
+        <p style="margin:5px 0;">
+            Plan:
+            <strong id="display-seat-type">Normal Hall</strong>
+        </p>
+
+        <h2 style="margin:5px 0;color:#e67e22;">
+            Total Payable:
+            ₹<span id="final-amount">700</span>
+        </h2>
+
+        <div style="text-align:left;font-size:13px;margin:15px 0;padding:10px;background:white;border-radius:5px;">
+
+            <strong>Bank Details:</strong><br>
+
+            Bank Name: State Bank of India (SBI)<br>
+            A/c No: 123456789012<br>
+            IFSC Code: SBIN000XXXX<br>
+            UPI ID: library@upi
+
+        </div>
+
+        <p style="font-weight:bold;font-size:12px;margin-bottom:8px;">
+            Scan QR to Pay Now:
+        </p>
+
+        <img src="image_e0f234.png"
+             alt="Payment QR"
+             style="width:160px;height:160px;border:4px solid #fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+
+        <p style="font-size:11px;color:#777;margin-top:8px;">
+            *Take a screenshot of payment for confirmation.
+        </p>
+
+    </div>
+
+    <button class="btn-pay" onclick="sendPaymentRequest()">
+        I HAVE PAID - SUBMIT REQUEST
+    </button>
+
+</div>
+
+<script>
+
+function buildLayout(){
+
+    const container = document.getElementById('layout-container');
+
+    let seatNum = 1;
+
+    // 126 Normal Seats
+    for(let r = 0; r < 14; r++){
+
+        let rowDiv = document.createElement('div');
+        rowDiv.className = 'row';
+
+        for(let c = 0; c < 9; c++){
+
+            if(seatNum > 126) break;
+
+            let seat = document.createElement('div');
+
+            seat.className = 'seat';
+
+            seat.innerText = seatNum.toString();            //seat click
+            seat.onclick =function(){
+                if(seat.classList.contains('booked')){
+                    alert("This seat is already booked.");
+                    return;
+                }
+                //fill seat number
+                document.getElementById('seat-id-input').value = seat.innerText.trim();
+                //price update
+                calculateFinalPrice();
+
+                //auto scroll to payment section
+                document.getElementById('booking-section').scrollIntoView({behavior:'smooth'});
+            };
+
+            rowDiv.appendChild(seat);
+
+            seatNum++;
+        }
+
+        container.appendChild(rowDiv);
+    }
+
+
+ 
+
+    // Seat Click Event
+
+    document.addEventListener('click', function(e) {
+
+        if (e.target.classList.contains('seat')) {
+
+            const seat = e.target;
+
+            // Already booked
+            if (seat.classList.contains('booked')) {
+                alert("This seat is already booked.");
+                return;
+            }
+
+            // Fill Seat Number
+            document.getElementById('seat-id-input').value =
+                seat.innerText.trim();
+
+            // Update Price
+            calculateFinalPrice();
+
+            // Auto Scroll To Payment Section
+            // Seat Click Event
+document.addEventListener('click', function(e) {
+
+    if (e.target.classList.contains('seat')) {
+
+        const seat = e.target;
+
+        // Already booked
+        if (seat.classList.contains('booked')) {
+            alert("This seat is already booked.");
+            return;
+        }
+
+        // Seat Number Fill
+        document.getElementById('seat-id-input').value =
+        seat.innerText.trim();
+
+        // Price Update
+        calculateFinalPrice();
+
+        // Auto Scroll
+        setTimeout(() => {
+
+            const bookingSection =
+            document.getElementById('booking-section');
+
+            if (bookingSection) {
+
+                bookingSection.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+
+            }
+
+        }, 100);
+
+    }
+
+});
+        }})
+        }
+
+function calculateFinalPrice() {
+
+    const seatId = document.getElementById('seat-id-input').value.trim();
+    const selectedPlan = document.querySelector('input[name="res-type"]:checked');
+    const reservationOptions = document.getElementById('reservation-options');
+
+    let base = 0;
+    let security = 0;
+    let type = "Normal Hall";
+
+    const isCabin = seatId.startsWith('C');
+    const isReserved = selectedPlan && selectedPlan.value === 'reserved';
+
+    if (isCabin) {
+        base = 1100;
+        security = 50;
+        type = "Premium Cabin";
+        if (reservationOptions) {
+            reservationOptions.style.opacity = "0.5";
+            reservationOptions.querySelectorAll('input[name="res-type"]').forEach(i => i.disabled = true);
+        }
+    } else {
+        if (reservationOptions) {
+            reservationOptions.style.opacity = "1";
+            reservationOptions.querySelectorAll('input[name="res-type"]').forEach(i => i.disabled = false);
+        }
+        if (isReserved) {
+            base = 1000;
+            security = 50;
+            type = "Hall (Reserved)";
+        } else {
+            base = 700;
+            security = 0;
+            type = "Hall (Unreserved)";
+        }
+    }
+
+    document.getElementById('display-seat-type').innerText = type;
+    document.getElementById('final-amount').innerText = base + security;
+}
+
+
+
+   function sync() {
+        const bookings = JSON.parse(localStorage.getItem('libData_phoolbhagh')) || {};
+        const total = 126;
+        const booked = Object.keys(bookings).length;
+        document.getElementById('available-count').innerText = total - booked;
+        document.getElementById('booked-count').innerText = booked;
+        document.querySelectorAll('.seat').forEach(s => {
+            if (bookings[s.innerText.trim()]) s.classList.add('booked');
+            else s.classList.remove('booked');
+        });
+    }
+        
+
+    
+
+function sendPaymentRequest(){
+
+    const seat =
+    document.getElementById('seat-id-input').value;
+
+    const name =
+    document.getElementById('student-name').value;
+
+    const contact =
+    document.getElementById('student-contact').value;
+
+    const amt =
+    document.getElementById('final-amount').innerText;
+
+    const plan =
+    document.querySelector('input[name="res-type"]:checked').value;
+
+    if(!seat || !name || !contact){
+        return alert("Please fill all details!");
+    }
+
+    if(contact.length < 10){
+        return alert("Enter valid contact number!");
+    }
+
+    // Google Sheet URL
+    const scriptURL =
+    'https://script.google.com/macros/s/AKfycbziCDMw_yVDWop4dJxcNL9o5oZsVuJL3znBClId9Z2hQ-Wed8k518IrHkXBHndbwZA/exec';
+
+    let selectedType = "";
+
+if (seat.startsWith("C")) {
+    selectedType = "Premium Cabin";
+} else {
+
+    const planValue =
+    document.querySelector('input[name="res-type"]:checked').value;
+
+    if (planValue === "reserved") {
+        selectedType = "Reserved";
+    } else {
+        selectedType = "Unreserved";
+    }
+}
+
+const data = {
+    seatId: seat,
+    name: name,
+    contact: contact,
+    amount: amt,
+    type: selectedType,
+    status: "pending",
+    time: new Date().toISOString()
+};
+    fetch(scriptURL,{
+        method:'POST',
+        mode:'no-cors',
+        body:JSON.stringify(data)
+    });
+
+    // LocalStorage Save
+    let reqs =
+    JSON.parse(localStorage.getItem('paymentRequests_phoolbhagh')) || {};
+
+    reqs[seat] = {
+        name,
+        contact,
+        amount: amt,
+        time: new Date().toISOString()
+    };
+
+    localStorage.setItem(
+        'paymentRequests_phoolbhagh',
+        JSON.stringify(reqs)
+    );
+
+    alert("Request Sent Successfully!");
+
+    location.reload();
+}
+
+window.onload = () => {
+
+    buildLayout();
+
+    sync();
+
+    setInterval(sync,3000);
+
+};
+
+reqs[seat] = {
+    seatId: seat,
+    name: name,
+    contact: contact,
+    amount: amt,
+    type: plan + " (Request)",
+    status: "pending",
+    time: new Date().toISOString()
+};
+    /*// Double Booking Check: SM dashboard ka data check karein
+    let smData = JSON.parse(localStorage.getItem('libData_phoolbhagh')) || {};
+    if (smData[seat]) {
+        alert("Ye seat pehle hi book ho chuki hai. Please choose another seat.");
+        location.reload();
+        return;*/
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbziCDMw_yVDWop4dJxcNL9o5oZsVuJL3znBClId9Z2hQ-Wed8k518IrHkXBHndbwZA/exec';
+    
+    const data = { 
+        seatId: seat, 
+        name: name, 
+        contact: contact, 
+        amount: amt, 
+        type: planValue + " (Student Req)",
+        status: "pending", 
+        time: new Date().toLocaleDateString()
+    };
+// IMPORTANT: SM Dashboard Sync (Isse seat orange ho jayegi automatic)
+    smData[seat] = data;
+    localStorage.setItem('libData_phoolbhagh', JSON.stringify(smData));
+    
+         // Google Sheets Update
+    fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
+
+    // IMPORTANT: SM Dashboard Sync (Isse seat orange ho jayegi automatic)
+    smData[seat] = data;
+    localStorage.setItem('libData_phoolbhagh', JSON.stringify(smData));
+    
+    // Admin Dashboard Request Sync
+    let reqs = JSON.parse(localStorage.getItem('paymentRequests_phoolbhagh')) || {};
+    reqs[seat] = data;
+    localStorage.setItem('paymentRequests_phoolbhagh', JSON.stringify(reqs));
+    
+    alert("Booking Successful! Seat reserved for approval.");
+    location.reload();
+
+
+</script>
+
+</body>
+</html>
